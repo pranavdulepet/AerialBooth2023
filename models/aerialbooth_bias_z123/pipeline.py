@@ -604,7 +604,7 @@ class ImagicStableDiffusionPipeline(DiffusionPipeline):
                 )
                 mi_score = MI(latents_forecast, self.image_latents).mean().unsqueeze(1)
                 mi_score_hom = MI(latents_forecast, self.image_latents_hom).mean().unsqueeze(1)
-                combined_mi_score = (0.75 * mi_score) + (0.25 * mi_score_hom)
+                combined_mi_score = (0.25 * mi_score) + (0.75 * mi_score_hom)
 
                 optimizer.zero_grad()
                 (-combined_mi_score).backward()
