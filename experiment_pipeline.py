@@ -1,5 +1,5 @@
 
-from train_aerialbooth_cum import run_diffusion_experiment as exp1
+from train_aerialbooth_sum import run_diffusion_experiment as exp1
 from train_aerialbooth_avg import run_diffusion_experiment as exp2
 from train_aerialbooth_bias_input import run_diffusion_experiment as exp3
 from train_aerialbooth_bias_z123 import run_diffusion_experiment as exp4
@@ -45,7 +45,7 @@ def main():
 
     for i in range(len(img_lst)):
        init_image_path = path + img_lst[i] + ".png" 
-       output_dir1 = f"./exp_outputs/cumulative_out/{img_lst[i]}/"
+       output_dir1 = f"./exp_outputs/sum_out/{img_lst[i]}/"
        output_dir2 = f"./exp_outputs/avg_out/{img_lst[i]}/"
        output_dir3 = f"./exp_outputs/input_bias_out/{img_lst[i]}/"
        output_dir4 = f"./exp_outputs/z123_bias_out/{img_lst[i]}/"

@@ -15,7 +15,7 @@ def run_diffusion_experiment(init_image_path, zero_output_path, output_dir, prom
         "stabilityai/stable-diffusion-2-1-base",
         safety_checker=None,
         use_auth_token=False,
-        custom_pipeline='./models/aerialbooth_cum',
+        custom_pipeline='./models/aerialbooth_sum',
         cache_dir='dir_name',
         scheduler=DDIMScheduler(beta_start=0.00085, beta_end=0.012, beta_schedule="scaled_linear", clip_sample=False)
     ).to(device)
