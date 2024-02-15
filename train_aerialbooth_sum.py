@@ -63,7 +63,7 @@ def run_diffusion_experiment(init_image_path, zero_output_path, output_dir, prom
         
         eval_prompt = f"{view_mode} view, {prompt}"
         
-        image_hom = image_hom.resize(512,512)
+        image_hom = image_hom.resize((512,512))
 
         res = pipe.train(
             prompt,
