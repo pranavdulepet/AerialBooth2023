@@ -62,6 +62,8 @@ def run_diffusion_experiment(init_image_path, zero_output_path, output_dir, prom
             image_hom = back_hom
         
         eval_prompt = f"{view_mode} view, {prompt}"
+        
+        image_hom = image_hom.resize(512,512)
 
         res = pipe.train(
             prompt,
@@ -72,7 +74,6 @@ def run_diffusion_experiment(init_image_path, zero_output_path, output_dir, prom
             image_hom=image_hom
         )
 
-        image_hom = image_hom.resize(512,512)
 
         for i in range(5):  
             res = pipe(alpha=0.1, guidance_scale=7.5, num_inference_steps=50, mi_lr=1e-6, eval_prompt=eval_prompt)
