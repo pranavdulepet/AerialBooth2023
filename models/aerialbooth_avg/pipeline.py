@@ -596,18 +596,20 @@ class ImagicStableDiffusionPipeline(DiffusionPipeline):
             
             if(i<num_inference_steps - 1):
 
-                # B,C,H,W = latents.shape
+                B,C,H,W = latents.shape
                 latents.requires_grad_(True)
                 optimizer = torch.optim.Adam(
                     [latents],  # only optimize the embeddings
                     lr=mi_lr,
                 )
-                mi_score = MI(latents_forecast, self.image_latents).mean().unsqueeze(1)
-                mi_score_hom = MI(latents_forecast, self.image_latents_hom).mean().unsqueeze(1)
-                combined_mi_score = (mi_score + mi_score_hom) / 2
+                for c in range(C):
+                    mi_score = 0
+                    mi_score_hom = 0
+                    mi_score += MI(latents_forecast[:, c, :, :].unsqueeze(1), self.image_latents[:, c, :, :].unsqueeze(1))
+                    mi_score_hom += MI(latents_forecast[:, c, :, :].unsqueeze(1), self.image_latents_hom[:, c, :, :].unsqueeze(1))
+                    combined_mi_score = (mi_score + mi_score_hom) / 2
 
-                optimizer.zero_grad()
-                (-combined_mi_score).backward()
+                combined_mi_score = -1 * combined_mi_score
                 optimizer.step()
                 optimizer.zero_grad()
                 latents.requires_grad_(False)
