@@ -3,6 +3,7 @@ from train_aerialbooth_sum import run_diffusion_experiment as exp1
 from train_aerialbooth_avg import run_diffusion_experiment as exp2
 from train_aerialbooth_bias_input import run_diffusion_experiment as exp3
 from train_aerialbooth_bias_z123 import run_diffusion_experiment as exp4
+from train_aerialbooth_noisy_z123 import run_diffusion_experiment as exp5
 
 def main():
     path = "./dataset/synthetic_sdxl_images/"
@@ -45,17 +46,19 @@ def main():
 
     for i in range(len(img_lst)):
        init_image_path = path + img_lst[i] + ".png" 
-       output_dir1 = f"./exp_outputs/sum_out/{img_lst[i]}/"
-       output_dir2 = f"./exp_outputs/avg_out/{img_lst[i]}/"
-       output_dir3 = f"./exp_outputs/input_bias_out/{img_lst[i]}/"
-       output_dir4 = f"./exp_outputs/z123_bias_out/{img_lst[i]}/"
+       #output_dir1 = f"./exp_outputs/sum_out/{img_lst[i]}/"
+       #output_dir2 = f"./exp_outputs/avg_out/{img_lst[i]}/"
+       #output_dir3 = f"./exp_outputs/input_bias_out/{img_lst[i]}/"
+       #output_dir4 = f"./exp_outputs/z123_bias_out/{img_lst[i]}/"
+       output_dir5 = f"./exp_outputs/noisy_z123/{img_lst[i]}/"
        prompt = prompts[i]
-       zero_output_path = "./zero_outputs/output" + img_lst[i] + ".png" 
+       zero_output_path = "./zero_outputs/output_" + img_lst[i] + ".png" 
        
-       exp1(init_image_path, zero_output_path, output_dir1, prompt)
-       exp2(init_image_path, zero_output_path, output_dir2, prompt)
-       exp3(init_image_path, zero_output_path, output_dir3, prompt)
-       exp4(init_image_path, zero_output_path, output_dir4, prompt)
+       #exp1(init_image_path, zero_output_path, output_dir1, prompt)
+       #exp2(init_image_path, zero_output_path, output_dir2, prompt)
+       #exp3(init_image_path, zero_output_path, output_dir3, prompt)
+       #exp4(init_image_path, zero_output_path, output_dir4, prompt)
+       exp5(init_image_path, zero_output_path, output_dir5, prompt)
 
 if __name__ == "__main__":
     main()
