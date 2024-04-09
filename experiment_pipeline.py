@@ -4,23 +4,21 @@
 # from train_aerialbooth_bias_z123 import run_diffusion_experiment as exp4
 # from train_aerialbooth_noisy_z123 import run_diffusion_experiment as exp5
 
-from train_aerialbooth_zero_yes_mutual import run_diffusion_experiment as exp
+# from train_aerialbooth_zero_yes_mutual import run_diffusion_experiment as exp
+from train_aerialbooth_exp1 import run_diffusion_experiment as exp
 import os
 
+
 def main():
-    path = "./dataset/video_frames/panda"
-    imgs = os.listdir(path)
+    
+    prompt = "a coastal lighthouse with a spiral staircase."
 
-    print(imgs)
-    prompt = "A panda taking a selfie."
+    init_image_path = "/gammascratch/mukunds/downloads/AerialBooth2023/dataset/synthetic_sdxl_images/architectures34.png"
+    output_dir = "./exp_outs/sum_grid_idk/"
+    zero_output_path = f"./zero_outputs/output_architectures34.png"
+    print(f"Output dir: {output_dir}")
 
-    for img in imgs:
-        init_image_path = path + "/"  + img
-        output_dir = f"./exp_outs/videos/panda/res_{img[:-4]}"
-        zero_output_path = f"./zero_outputs/panda/{img}"
-        print(f"Output dir: {output_dir}")
-
-        exp(init_image_path, zero_output_path, output_dir, prompt)
+    exp(init_image_path=init_image_path, zero_output_path=zero_output_path, output_dir=output_dir, prompt=prompt)
 
 if __name__ == "__main__":
     main()
