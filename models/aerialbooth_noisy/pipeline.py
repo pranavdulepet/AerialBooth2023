@@ -453,13 +453,14 @@ class ImagicStableDiffusionPipeline(DiffusionPipeline):
 
         MI = MutualInformation(num_bins=256, sigma=0.1, normalize=True).to(self.device)
         for i, t in enumerate(tqdm(range(num_inference_steps))):
-            # latent_model_input = torch.cat([latents] * 2) if guidance_scale > 1.0 else latents
-            latent_model_input = latents
+            latent_model_input = torch.cat([latents] * 2) if guidance_scale > 1.0 else latents
+            # latent_model_input = latents
             latent_model_input = self.scheduler.scale_model_input(latent_model_input, t)
             text_embeddings = text_embeddings_aerial
-
+            
             print(f"initial latent shape: {latent_model_input.shape}, latents shape: {latents.shape}")
-                                            # (2, 4, 64, 64)                            (1, 4, 64, 64)
+            latent_model_input = torch.cat([latents, text_embeddings], dim=0)
+            print(f"initial latent shape: {latent_model_input.shape}, latents shape: {latents.shape}")
             noise_pred = self.unet(latent_model_input, t, encoder_hidden_states=text_embeddings).sample
                                     # tensor a is (8192), tensor b is (4096)
 
