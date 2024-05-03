@@ -15,7 +15,7 @@ def main():
 
     init_image_path = "/gammascratch/pdulepet/AerialBooth2023/dataset/synthetic_sdxl_images/architectures34.png"
     output_dir = "./exp_outs/03052024/"
-    zero_output_path = f"./zero_outputs/output_architectures34.png"
+    zero_output_path = f"./zero_outputs/output_architectures34_aerial.png"
     print(f"Output dir: {output_dir}")
 
     exp(init_image_path=init_image_path, zero_output_path=zero_output_path, output_dir=output_dir, prompt=prompt)

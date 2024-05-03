@@ -36,12 +36,12 @@ def run_diffusion_experiment(init_image_path, output_dir, prompt, zero_output_pa
     )
     
     os.makedirs(output_dir, exist_ok=True)
-    view_modes = ['bottom', 'side', 'back', 'aerial']
+    # view_modes = ['bottom', 'side', 'back', 'aerial']
     
-    for view_mode in view_modes:
-        eval_prompt = f'{view_mode} view, {prompt}'
-        for i in range(5):  
-            res = pipe(alpha=0.1, guidance_scale=7.5, num_inference_steps=50, mi_lr=0, eval_prompt=eval_prompt, image_hom=image_hom)
-            image = res.images[0]
-            image.save(f'{output_dir}/{view_mode}{i+1}.png')
+    # for view_mode in view_modes:
+    eval_prompt = f'aerial view, {prompt}'
+    for i in range(5):  
+        res = pipe(alpha=0.1, guidance_scale=7.5, num_inference_steps=50, mi_lr=0, eval_prompt=eval_prompt, image_hom=image_hom)
+        image = res.images[0]
+        image.save(f'{output_dir}/aerial.png')
 

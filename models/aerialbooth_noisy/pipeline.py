@@ -457,6 +457,7 @@ class ImagicStableDiffusionPipeline(DiffusionPipeline):
             latent_model_input = self.scheduler.scale_model_input(latent_model_input, t)
             text_embeddings = text_embeddings_aerial
 
+            print(f"initial latent shape: {latent_model_input.shape}, latents shape: {latents.shape}")
             noise_pred = self.unet(latent_model_input, t, encoder_hidden_states=text_embeddings).sample
 
             if guidance_scale > 1.0:
