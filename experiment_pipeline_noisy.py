@@ -6,7 +6,7 @@
 # from train_aerialbooth_zero_yes_mutual import run_diffusion_experiment as exp
 # from train_aerialbooth_exp1 import run_diffusion_experiment as exp
 
-from train_aerialbooth_no_guidance_noisy import run_diffusion_experiment as exp
+from train_aerialbooth_no_guidance import run_diffusion_experiment as exp
 import os
 
 def main():
@@ -14,7 +14,7 @@ def main():
     prompt = "a coastal lighthouse with a spiral staircase."
 
     init_image_path = "/gammascratch/pdulepet/AerialBooth2023/dataset/synthetic_sdxl_images/architectures34.png"
-    output_dir = "./exp_outs/sum_grid_idk/"
+    output_dir = "./exp_outs/03052024/"
     zero_output_path = f"./zero_outputs/output_architectures34.png"
     print(f"Output dir: {output_dir}")
 

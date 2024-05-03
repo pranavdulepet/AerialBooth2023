@@ -468,8 +468,8 @@ class ImagicStableDiffusionPipeline(DiffusionPipeline):
         self.text_embeddings_front_opt = text_embeddings
         self.text_embeddings_aerial = text_embeddings_aerial
     
-     @torch.no_grad()
-     def __call__(
+    @torch.no_grad()
+    def __call__(
 	    self,
 	    alpha: float = 1.2,
 	    height: Optional[int] = 512,
@@ -484,85 +484,85 @@ class ImagicStableDiffusionPipeline(DiffusionPipeline):
 	    eval_prompt: Union[str, List[str]] = None,
 	    **kwargs,
 	):
-	    prompt_modified = eval_prompt
-	    text_input_modified = self.tokenizer(
-	        prompt_modified,
-	        padding="max_length",
-	        max_length=self.tokenizer.model_max_length,
-	        truncation=True,
-	        return_tensors="pt",
-	    )
-	    text_embeddings_aerial = torch.nn.Parameter(
-	        self.text_encoder(text_input_modified.input_ids.to(self.device))[0]
-	    )
-	    text_embeddings_aerial = text_embeddings_aerial.detach()
+        prompt_modified = eval_prompt
+        text_input_modified = self.tokenizer(
+            prompt_modified,
+            padding="max_length",
+            max_length=self.tokenizer.model_max_length,
+            truncation=True,
+            return_tensors="pt",
+        )
+        text_embeddings_aerial = torch.nn.Parameter(
+            self.text_encoder(text_input_modified.input_ids.to(self.device))[0]
+        )
+        text_embeddings_aerial = text_embeddings_aerial.detach()
 
-	    if isinstance(self.image_hom, PIL.Image.Image):
-	        self.image_hom = preprocess(self.image_hom)  
-	    init_latent_image_dist_hom = self.vae.encode(self.image_hom).latent_dist
-	    image_latents_hom = init_latent_image_dist_hom.sample(generator=generator)
-	    noise = torch.randn(image_latents_hom.shape, device=self.device)
-	    image_latents_hom_noisy = image_latents_hom + 0.1 * noise  
+        if isinstance(self.image_hom, PIL.Image.Image):
+            self.image_hom = preprocess(self.image_hom)  
+        init_latent_image_dist_hom = self.vae.encode(self.image_hom).latent_dist
+        image_latents_hom = init_latent_image_dist_hom.sample(generator=generator)
+        noise = torch.randn(image_latents_hom.shape, device=self.device)
+        image_latents_hom_noisy = image_latents_hom + 0.1 * noise  
 
-	    latents = image_latents_hom_noisy  
+        latents = image_latents_hom_noisy
 
-	    latents_shape = (1, self.unet.in_channels, height // 8, width // 8)
-	    latents_dtype = text_embeddings_aerial.dtype
-	    if self.device.type == "mps":
-	        latents = torch.randn(latents_shape, generator=generator, device="cpu", dtype=latents_dtype).to(
-	            self.device
-	        )
-	    else:
-	        latents = torch.randn(latents_shape, generator=generator, device=self.device, dtype=latents_dtype)
+        latents_shape = (1, self.unet.in_channels, height // 8, width // 8)
+        latents_dtype = text_embeddings_aerial.dtype
+        if self.device.type == "mps":
+            latents = torch.randn(latents_shape, generator=generator, device="cpu", dtype=latents_dtype).to(
+                self.device
+            )
+        else:
+            latents = torch.randn(latents_shape, generator=generator, device=self.device, dtype=latents_dtype)
 
-	    self.scheduler.set_timesteps(num_inference_steps)
+        self.scheduler.set_timesteps(num_inference_steps)
 
-	    timesteps_tensor = self.scheduler.timesteps.to(self.device)
+        timesteps_tensor = self.scheduler.timesteps.to(self.device)
 
 
-	    accepts_eta = "eta" in set(inspect.signature(self.scheduler.step).parameters.keys())
-	    extra_step_kwargs = {}
-	    if accepts_eta:
-	        extra_step_kwargs["eta"] = eta
+        accepts_eta = "eta" in set(inspect.signature(self.scheduler.step).parameters.keys())
+        extra_step_kwargs = {}
+        if accepts_eta:
+            extra_step_kwargs["eta"] = eta
 
-	    MI = MutualInformation(num_bins=256, sigma=0.1, normalize=True).to(self.device)
-	    for i, t in enumerate(tqdm(range(num_inference_steps))):
-	        latent_model_input = torch.cat([latents] * 2) if guidance_scale > 1.0 else latents
-	        latent_model_input = self.scheduler.scale_model_input(latent_model_input, t)
-	        text_embeddings = text_embeddings_aerial
+        MI = MutualInformation(num_bins=256, sigma=0.1, normalize=True).to(self.device)
+        for i, t in enumerate(tqdm(range(num_inference_steps))):
+            latent_model_input = torch.cat([latents] * 2) if guidance_scale > 1.0 else latents
+            latent_model_input = self.scheduler.scale_model_input(latent_model_input, t)
+            text_embeddings = text_embeddings_aerial
 
-	        noise_pred = self.unet(latent_model_input, t, encoder_hidden_states=text_embeddings).sample
+            noise_pred = self.unet(latent_model_input, t, encoder_hidden_states=text_embeddings).sample
 
-	        if guidance_scale > 1.0:
-	            noise_pred_uncond, noise_pred_text = noise_pred.chunk(2)
-	            noise_pred = noise_pred_uncond + guidance_scale * (noise_pred_text - noise_pred_uncond)
+            if guidance_scale > 1.0:
+                noise_pred_uncond, noise_pred_text = noise_pred.chunk(2)
+                noise_pred = noise_pred_uncond + guidance_scale * (noise_pred_text - noise_pred_uncond)
 
-	        latents = self.scheduler.step(noise_pred, t, latents, **extra_step_kwargs).prev_sample
+            latents = self.scheduler.step(noise_pred, t, latents, **extra_step_kwargs).prev_sample
 
-	    latents = 1 / 0.18215 * latents
-	    image = self.vae.decode(latents).sample
+        latents = 1 / 0.18215 * latents
+        image = self.vae.decode(latents).sample
 
-	    image = (image / 2 + 0.5).clamp(0, 1)
+        image = (image / 2 + 0.5).clamp(0, 1)
 
-	    image = image.cpu().permute(0, 2, 3, 1).float().numpy()
+        image = image.cpu().permute(0, 2, 3, 1).float().numpy()
 
-	    if self.safety_checker is not None:
-	        safety_checker_input = self.feature_extractor(self.numpy_to_pil(image), return_tensors="pt").to(
-	            self.device
-	        )
-	        image, has_nsfw_concept = self.safety_checker(
-	            images=image, clip_input=safety_checker_input.pixel_values.to(text_embeddings.dtype)
-	        )
-	    else:
-	        has_nsfw_concept = None
+        if self.safety_checker is not None:
+            safety_checker_input = self.feature_extractor(self.numpy_to_pil(image), return_tensors="pt").to(
+                self.device
+            )
+            image, has_nsfw_concept = self.safety_checker(
+                images=image, clip_input=safety_checker_input.pixel_values.to(text_embeddings.dtype)
+            )
+        else:
+            has_nsfw_concept = None
 
-	    if output_type == "pil":
-	        image = self.numpy_to_pil(image)
+        if output_type == "pil":
+            image = self.numpy_to_pil(image)
 
-	    if not return_dict:
-	        return (image, has_nsfw_concept)
+        if not return_dict:
+            return (image, has_nsfw_concept)
 
-	    return StableDiffusionPipelineOutput(images=image, nsfw_content_detected=has_nsfw_concept)
+        return StableDiffusionPipelineOutput(images=image, nsfw_content_detected=has_nsfw_concept)
 
 
 
