@@ -410,7 +410,6 @@ class ImagicStableDiffusionPipeline(DiffusionPipeline):
         image_hom: PIL.Image.Image = None,
 	    **kwargs,
 	):
-        self.image_hom = image_hom
         prompt_modified = eval_prompt
         text_input_modified = self.tokenizer(
             prompt_modified,
@@ -424,8 +423,8 @@ class ImagicStableDiffusionPipeline(DiffusionPipeline):
         )
         text_embeddings_aerial = text_embeddings_aerial.detach()
 
-        if isinstance(self.image_hom, PIL.Image.Image):
-            self.image_hom = preprocess(self.image_hom)  
+        if isinstance(image_hom, PIL.Image.Image):
+            self.image_hom = preprocess(image_hom).to(self.device)
         init_latent_image_dist_hom = self.vae.encode(self.image_hom).latent_dist
         image_latents_hom = init_latent_image_dist_hom.sample(generator=generator)
         noise = torch.randn(image_latents_hom.shape, device=self.device)
