@@ -428,18 +428,18 @@ class ImagicStableDiffusionPipeline(DiffusionPipeline):
         init_latent_image_dist_hom = self.vae.encode(self.image_hom).latent_dist
         image_latents_hom = init_latent_image_dist_hom.sample(generator=generator)
         noise = torch.randn(image_latents_hom.shape, device=self.device)
-        image_latents_hom_noisy = image_latents_hom + 0.1 * noise  
+        image_latents_hom_noisy = image_latents_hom + 0.01 * noise  
 
         latents = image_latents_hom_noisy
 
         latents_shape = (1, self.unet.in_channels, height // 8, width // 8)
-        latents_dtype = text_embeddings_aerial.dtype
-        if self.device.type == "mps":
-            latents = torch.randn(latents_shape, generator=generator, device="cpu", dtype=latents_dtype).to(
-                self.device
-            )
-        else:
-            latents = torch.randn(latents_shape, generator=generator, device=self.device, dtype=latents_dtype)
+        # latents_dtype = text_embeddings_aerial.dtype
+        # if self.device.type == "mps":
+        #     latents = torch.randn(latents_shape, generator=generator, device="cpu", dtype=latents_dtype).to(
+        #         self.device
+        #     )
+        # else:
+            # latents = torch.randn(latents_shape, generator=generator, device=self.device, dtype=latents_dtype)
 
         self.scheduler.set_timesteps(num_inference_steps)
 
@@ -457,7 +457,7 @@ class ImagicStableDiffusionPipeline(DiffusionPipeline):
             latent_model_input = self.scheduler.scale_model_input(latent_model_input, t)
             text_embeddings = text_embeddings_aerial
             
-            print(f"latent model input shape: {latent_model_input.shape}, latents shape: {latents.shape}, text embeddings shape: {text_embeddings.shape}")
+            # print(f"latent model input shape: {latent_model_input.shape}, latents shape: {latents.shape}, text embeddings shape: {text_embeddings.shape}")
             #latent_model_input = torch.cat([latents, text_embeddings], dim=0)
             
             if guidance_scale > 1.0:
@@ -467,15 +467,6 @@ class ImagicStableDiffusionPipeline(DiffusionPipeline):
                 noise_pred = unconditioned_pred + guidance_scale * (conditioned_pred - unconditioned_pred)
             else:
                 noise_pred = self.unet(latent_model_input, t, encoder_hidden_states=text_embeddings).sample
-            
-            #noise_pred = self.unet(latent_model_input, t, encoder_hidden_states=text_embeddings).sample
-                                    # tensor a is (8192), tensor b is (4096)
-
-            if guidance_scale > 1.0:
-
-                # noise_pred_uncond, noise_pred_text = noise_pred.chunk(2)
-                noise_pred = guidance_scale * noise_pred.chunk(2)
-                # noise_pred = noise_pred_uncond + guidance_scale * (noise_pred_text - noise_pred_uncond)
 
             latents = self.scheduler.step(noise_pred, t, latents, **extra_step_kwargs).prev_sample
 
@@ -503,8 +494,3 @@ class ImagicStableDiffusionPipeline(DiffusionPipeline):
             return (image, has_nsfw_concept)
 
         return StableDiffusionPipelineOutput(images=image, nsfw_content_detected=has_nsfw_concept)
-
-
-
-
-
