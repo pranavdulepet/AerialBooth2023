@@ -445,7 +445,6 @@ class ImagicStableDiffusionPipeline(DiffusionPipeline):
 
         timesteps_tensor = self.scheduler.timesteps.to(self.device)
 
-
         accepts_eta = "eta" in set(inspect.signature(self.scheduler.step).parameters.keys())
         extra_step_kwargs = {}
         if accepts_eta:
@@ -458,13 +457,22 @@ class ImagicStableDiffusionPipeline(DiffusionPipeline):
             latent_model_input = self.scheduler.scale_model_input(latent_model_input, t)
             text_embeddings = text_embeddings_aerial
             
-            print(f"initial latent shape: {latent_model_input.shape}, latents shape: {latents.shape}")
-            latent_model_input = torch.cat([latents, text_embeddings], dim=0)
-            print(f"initial latent shape: {latent_model_input.shape}, latents shape: {latents.shape}")
-            noise_pred = self.unet(latent_model_input, t, encoder_hidden_states=text_embeddings).sample
+            print(f"latent model input shape: {latent_model_input.shape}, latents shape: {latents.shape}, text embeddings shape: {text_embeddings.shape}")
+            #latent_model_input = torch.cat([latents, text_embeddings], dim=0)
+            
+            if guidance_scale > 1.0:
+                conditional_latents, unconditional_latents = torch.chunk(latent_model_input, 2, dim=0)
+                conditioned_pred = self.unet(conditional_latents, t, encoder_hidden_states=text_embeddings).sample
+                unconditioned_pred = self.unet(unconditional_latents, t, encoder_hidden_states=text_embeddings).sample
+                noise_pred = unconditioned_pred + guidance_scale * (conditioned_pred - unconditioned_pred)
+            else:
+                noise_pred = self.unet(latent_model_input, t, encoder_hidden_states=text_embeddings).sample
+            
+            #noise_pred = self.unet(latent_model_input, t, encoder_hidden_states=text_embeddings).sample
                                     # tensor a is (8192), tensor b is (4096)
 
             if guidance_scale > 1.0:
+
                 # noise_pred_uncond, noise_pred_text = noise_pred.chunk(2)
                 noise_pred = guidance_scale * noise_pred.chunk(2)
                 # noise_pred = noise_pred_uncond + guidance_scale * (noise_pred_text - noise_pred_uncond)
