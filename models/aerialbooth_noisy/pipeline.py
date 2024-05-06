@@ -535,13 +535,20 @@ class ImagicStableDiffusionPipeline(DiffusionPipeline):
 
         latents_shape = (1, self.unet.in_channels, height // 8, width // 8)
         latents_dtype = text_embeddings.dtype
-        if self.device.type == "mps":
-            # randn does not exist on mps
-            latents = torch.randn(latents_shape, generator=generator, device="cpu", dtype=latents_dtype).to(
-                self.device
-            )
-        else:
-            latents = torch.randn(latents_shape, generator=generator, device=self.device, dtype=latents_dtype)
+        
+        # if self.device.type == "mps":
+        #     # randn does not exist on mps
+        #     latents = torch.randn(latents_shape, generator=generator, device="cpu", dtype=latents_dtype).to(
+        #         self.device
+        #     )
+        # else:
+        #     latents = torch.randn(latents_shape, generator=generator, device=self.device, dtype=latents_dtype)
+
+        if isinstance(image_hom, PIL.Image.Image):
+            self.image_hom = preprocess(image_hom).to(self.device)
+        init_latent_image_dist_hom = self.vae.encode(self.image_hom).latent_dist
+        image_latents_hom = init_latent_image_dist_hom.sample(generator=generator)
+        latents = image_latents_hom 
 
         # image_hom = image_hom.resize((512, 512))
         # self.image_hom = preprocess(image_hom).to(self.device)
