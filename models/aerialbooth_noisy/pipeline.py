@@ -395,21 +395,22 @@ class ImagicStableDiffusionPipeline(DiffusionPipeline):
     
     @torch.no_grad()
     def __call__(
-	    self,
-	    alpha: float = 1.2,
-	    height: Optional[int] = 512,
-	    width: Optional[int] = 512,
-	    num_inference_steps: Optional[int] = 50,
-	    generator: Optional[torch.Generator] = None,
-	    output_type: Optional[str] = "pil",
-	    return_dict: bool = True,
-	    guidance_scale: float = 7.5,
-	    eta: float = 0.0,
-	    mi_lr: float = 1e-5, 
-	    eval_prompt: Union[str, List[str]] = None,
-        image_hom: PIL.Image.Image = None,
-	    **kwargs,
-	):
+        self,
+        image_hom = None,
+        alpha: float = 1.2,
+        height: Optional[int] = 512,
+        width: Optional[int] = 512,
+        num_inference_steps: Optional[int] = 50,
+        generator: Optional[torch.Generator] = None,
+        output_type: Optional[str] = "pil",
+        return_dict: bool = True,
+        guidance_scale: float = 7.5,
+        eta: float = 0.0,
+        mi_lr: float = 1e-5, 
+        eval_prompt: Union[str, List[str]] = None,
+        **kwargs,
+    ):
+        
         prompt_modified = eval_prompt
         text_input_modified = self.tokenizer(
             prompt_modified,
@@ -423,58 +424,159 @@ class ImagicStableDiffusionPipeline(DiffusionPipeline):
         )
         text_embeddings_aerial = text_embeddings_aerial.detach()
 
-        if isinstance(image_hom, PIL.Image.Image):
-            self.image_hom = preprocess(image_hom).to(self.device)
-        init_latent_image_dist_hom = self.vae.encode(self.image_hom).latent_dist
-        image_latents_hom = init_latent_image_dist_hom.sample(generator=generator)
-        noise = torch.randn(image_latents_hom.shape, device=self.device)
-        image_latents_hom_noisy = image_latents_hom + 0.01 * noise  
+        text_embeddings = alpha * text_embeddings_aerial + (1-alpha) * self.text_embeddings_aerial
+        text_embeddings1 = text_embeddings_aerial
+        text_embeddings2 = self.text_embeddings_aerial
+        
+        do_classifier_free_guidance = guidance_scale > 1.0
+        # get unconditional embeddings for classifier free guidance
+        if do_classifier_free_guidance:
+            uncond_tokens = [""]
+            max_length = self.tokenizer.model_max_length
+            uncond_input = self.tokenizer(
+                uncond_tokens,
+                padding="max_length",
+                max_length=max_length,
+                truncation=True,
+                return_tensors="pt",
+            )
+            uncond_embeddings = self.text_encoder(uncond_input.input_ids.to(self.device))[0]
 
-        latents = image_latents_hom_noisy
+            # duplicate unconditional embeddings for each generation per prompt, using mps friendly method
+            seq_len = uncond_embeddings.shape[1]
+            uncond_embeddings = uncond_embeddings.view(1, seq_len, -1)
+
+            # For classifier free guidance, we need to do two forward passes.
+            # Here we concatenate the unconditional and text embeddings into a single batch
+            # to avoid doing two forward passes
+            text_embeddings = torch.cat([uncond_embeddings, text_embeddings])
+            text_embeddings1 = torch.cat([uncond_embeddings, text_embeddings1])
+            text_embeddings2 = torch.cat([uncond_embeddings, text_embeddings2])
+            
+        # get the initial random noise unless the user supplied it
 
         latents_shape = (1, self.unet.in_channels, height // 8, width // 8)
-        # latents_dtype = text_embeddings_aerial.dtype
-        # if self.device.type == "mps":
-        #     latents = torch.randn(latents_shape, generator=generator, device="cpu", dtype=latents_dtype).to(
-        #         self.device
-        #     )
-        # else:
-            # latents = torch.randn(latents_shape, generator=generator, device=self.device, dtype=latents_dtype)
+        latents_dtype = text_embeddings.dtype
+        if self.device.type == "mps":
+            # randn does not exist on mps
+            latents = torch.randn(latents_shape, generator=generator, device="cpu", dtype=latents_dtype).to(
+                self.device
+            )
+        else:
+            latents = torch.randn(latents_shape, generator=generator, device=self.device, dtype=latents_dtype)
 
+        image_hom = image_hom.resize((512, 512))
+        self.image_hom = preprocess(image_hom).to(self.device)
+        # print(f"self.image_hom: {self.image_hom.shape}")
+        init_latent_image_dist_hom = self.vae.encode(self.image_hom).latent_dist
+        # print(f"init_latent_image_dist: {init_latent_image_dist_hom.shape}")
+        image_latents_hom = init_latent_image_dist_hom.sample(generator=generator)
+        # print(f"image_latents_hom: {image_latents_hom.shape}")
+        noise = torch.randn(image_latents_hom.shape).to(image_latents_hom.device)
+        # print(f"noise: {noise.shape}")
+        timesteps = torch.randint(50, 51, (1,), device=self.device)
+
+        image_latents_hom *=  0.18215
+        noisy_latents = self.scheduler.add_noise(image_latents_hom, noise, timesteps)
+        
+        latents = noisy_latents
+        
+        
+        # noisy_latents =image_latents_hom + 0.1 * noise
+
+        # print(f"noisy_latents: {noisy_latents.shape}")
+
+        # if isinstance(image_hom, PIL.Image.Image):
+        #     self.image_hom = preprocess(image_hom).to(self.device)
+        # init_latent_image_dist_hom = self.vae.encode(self.image_hom).latent_dist
+        # image_latents_hom = init_latent_image_dist_hom.sample(generator=generator)
+        # noise = torch.randn(image_latents_hom.shape, device=self.device)
+        # image_latents_hom_noisy = image_latents_hom + 0.01 * noise  
+        # latents = image_latents_hom_noisy
+
+        # set timesteps
         self.scheduler.set_timesteps(num_inference_steps)
 
         timesteps_tensor = self.scheduler.timesteps.to(self.device)
+
+        # scale the initial noise by the standard deviation required by the scheduler
+        # latents = latents * self.scheduler.init_noise_sigma
 
         accepts_eta = "eta" in set(inspect.signature(self.scheduler.step).parameters.keys())
         extra_step_kwargs = {}
         if accepts_eta:
             extra_step_kwargs["eta"] = eta
 
-        MI = MutualInformation(num_bins=256, sigma=0.1, normalize=True).to(self.device)
-        for i, t in enumerate(tqdm(range(num_inference_steps))):
-            latent_model_input = torch.cat([latents] * 2) if guidance_scale > 1.0 else latents
-            # latent_model_input = latents
+        # Find latent variables for aerial view generation 
+        '''
+        latents_aerial = latents.clone()
+        for i, t in enumerate(self.progress_bar(timesteps_tensor)):
+            # expand the latents if we are doing classifier free guidance
+            latent_model_input = torch.cat([latents_aerial] * 2) if do_classifier_free_guidance else latents_aerial
             latent_model_input = self.scheduler.scale_model_input(latent_model_input, t)
-            text_embeddings = text_embeddings_aerial
-            
-            # print(f"latent model input shape: {latent_model_input.shape}, latents shape: {latents.shape}, text embeddings shape: {text_embeddings.shape}")
-            #latent_model_input = torch.cat([latents, text_embeddings], dim=0)
-            
-            if guidance_scale > 1.0:
-                conditional_latents, unconditional_latents = torch.chunk(latent_model_input, 2, dim=0)
-                conditioned_pred = self.unet(conditional_latents, t, encoder_hidden_states=text_embeddings).sample
-                unconditioned_pred = self.unet(unconditional_latents, t, encoder_hidden_states=text_embeddings).sample
-                noise_pred = unconditioned_pred + guidance_scale * (conditioned_pred - unconditioned_pred)
-            else:
-                noise_pred = self.unet(latent_model_input, t, encoder_hidden_states=text_embeddings).sample
+            text_embeddings = text_embeddings1
+            # predict the noise residual
+            noise_pred = self.unet(latent_model_input, t, encoder_hidden_states=text_embeddings).sample
+            # perform guidance
+            if do_classifier_free_guidance:
+                noise_pred_uncond, noise_pred_text = noise_pred.chunk(2)
+                noise_pred = noise_pred_uncond + guidance_scale * (noise_pred_text - noise_pred_uncond)
+            # compute the previous noisy sample x_t -> x_t-1
+            latents_aerial = self.scheduler.step(noise_pred, t, latents_aerial, **extra_step_kwargs).prev_sample
+        '''
 
+        #image_latents_fft = fft.fft2(self.image_latents, dim=(2,3), norm='ortho')
+
+        # Actual inferencing   
+        MI = MutualInformation(num_bins=256, sigma=0.1, normalize=True).to(self.device)
+        for i, t in enumerate(self.progress_bar(timesteps_tensor)):
+            # expand the latents if we are doing classifier free guidance
+            latent_model_input = torch.cat([latents] * 2) if do_classifier_free_guidance else latents
+            latent_model_input = self.scheduler.scale_model_input(latent_model_input, t)
+            text_embeddings = text_embeddings1
+            
+            # predict the noise residual
+            noise_pred = self.unet(latent_model_input, t, encoder_hidden_states=text_embeddings).sample
+
+            # perform guidance
+            if do_classifier_free_guidance:
+                noise_pred_uncond, noise_pred_text = noise_pred.chunk(2)
+                noise_pred = noise_pred_uncond + guidance_scale * (noise_pred_text - noise_pred_uncond)
+
+            # compute the previous noisy sample x_t -> x_t-1
             latents = self.scheduler.step(noise_pred, t, latents, **extra_step_kwargs).prev_sample
+            latents_forecast = self.scheduler.step(noise_pred, t, latents, **extra_step_kwargs).pred_original_sample
+        
+            
+            if(i<num_inference_steps - 1):
+
+                B,C,H,W = latents.shape
+                latents.requires_grad_(True)
+                optimizer = torch.optim.Adam(
+                    [latents],  # only optimize the embeddings
+                    lr=mi_lr,
+                )
+                for c in range(C):
+                    mi_score = 0
+                    mi_score_hom = 0
+                    # print(f"latents_forecast: {latents_forecast.shape}, image_latents: {self.image_latents.shape}, image_latents_hom: {image_latents_hom.shape}")
+                    mi_score += MI(latents_forecast[:, c, :, :].unsqueeze(1), self.image_latents[:, c, :, :].unsqueeze(1))
+                    # mi_score_hom += MI(latents_forecast[:, c, :, :].unsqueeze(1), image_latents_hom[:, c, :, :].unsqueeze(1))
+                    combined_mi_score = (mi_score + mi_score_hom)
+
+                combined_mi_score = -1 * combined_mi_score
+                optimizer.step()
+                optimizer.zero_grad()
+                latents.requires_grad_(False)
+                
+            
 
         latents = 1 / 0.18215 * latents
         image = self.vae.decode(latents).sample
 
         image = (image / 2 + 0.5).clamp(0, 1)
 
+        # we always cast to float32 as this does not cause significant overhead and is compatible with bfloat16
         image = image.cpu().permute(0, 2, 3, 1).float().numpy()
 
         if self.safety_checker is not None:

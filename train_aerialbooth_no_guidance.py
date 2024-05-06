@@ -26,6 +26,14 @@ def run_diffusion_experiment(init_image_path, output_dir, prompt, zero_output_pa
     image_hom = Image.open(zero_output_path)
     #image_hom = Image.open(zero_output_path).convert("RGB").resize((512, 512))
     
+    # res = pipe.train(
+    #     prompt,
+    #     image=init_image,
+    #     generator=generator, 
+    #     text_embedding_optimization_steps=1000,
+    #     model_fine_tuning_optimization_steps=500
+    #     # image_hom=image_hom
+    # )
     res = pipe.train(
         prompt,
         image=init_image,

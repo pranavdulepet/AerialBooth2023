@@ -1,11 +1,3 @@
-# from train_aerialbooth_sum import run_diffusion_experiment as exp1
-# from train_aerialbooth_avg import run_diffusion_experiment as exp2
-# from train_aerialbooth_bias_input import run_diffusion_experiment as exp3
-# from train_aerialbooth_bias_z123 import run_diffusion_experiment as exp4
-# from train_aerialbooth_noisy_z123 import run_diffusion_experiment as exp5
-# from train_aerialbooth_zero_yes_mutual import run_diffusion_experiment as exp
-# from train_aerialbooth_exp1 import run_diffusion_experiment as exp
-
 from train_aerialbooth_no_guidance import run_diffusion_experiment as exp
 import os
 
