@@ -175,7 +175,7 @@ class ImagicStableDiffusionPipeline(DiffusionPipeline):
         diffusion_model_learning_rate: float = 2e-4,
         text_embedding_optimization_steps: int = 500,
         model_fine_tuning_optimization_steps: int = 1000,
-        image_hom: Union[torch.FloatTensor, PIL.Image.Image] = None,
+        # image_hom: Union[torch.FloatTensor, PIL.Image.Image] = None,
         **kwargs,
     ):
         
@@ -256,14 +256,14 @@ class ImagicStableDiffusionPipeline(DiffusionPipeline):
         image_latents = 0.18215 * image_latents
         self.image_latents = image_latents
 
-        if isinstance(image_hom, PIL.Image.Image):
-            image_hom = preprocess(image_hom)    
-        latents_dtype = text_embeddings.dtype
-        image_hom = image_hom.to(device=self.device, dtype=latents_dtype)
-        init_latent_image_dist_hom = self.vae.encode(image_hom).latent_dist
-        image_latents_hom = init_latent_image_dist_hom.sample(generator=generator)
-        image_latents_hom = 0.18215 * image_latents_hom
-        self.image_latents_hom = image_latents_hom
+        # if isinstance(image_hom, PIL.Image.Image):
+        #     image_hom = preprocess(image_hom)    
+        # latents_dtype = text_embeddings.dtype
+        # image_hom = image_hom.to(device=self.device, dtype=latents_dtype)
+        # init_latent_image_dist_hom = self.vae.encode(image_hom).latent_dist
+        # image_latents_hom = init_latent_image_dist_hom.sample(generator=generator)
+        # image_latents_hom = 0.18215 * image_latents_hom
+        # self.image_latents_hom = image_latents_hom
 
         progress_bar = tqdm(range(text_embedding_optimization_steps), disable=not accelerator.is_local_main_process)
         progress_bar.set_description("Steps")
@@ -393,77 +393,77 @@ class ImagicStableDiffusionPipeline(DiffusionPipeline):
 
         #Text embedding optimization 
         
-        logger.info("First optimizing the text embedding to better reconstruct the homography image")
-        for _ in range(int(text_embedding_optimization_steps/2)):
-            with accelerator.accumulate(text_embeddings_hom):
-                # Sample noise that we'll add to the latents
-                noise = torch.randn(image_latents.shape).to(image_latents.device)
-                timesteps = torch.randint(1000, (1,), device=image_latents.device)
+        # logger.info("First optimizing the text embedding to better reconstruct the homography image")
+        # for _ in range(int(text_embedding_optimization_steps/2)):
+        #     with accelerator.accumulate(text_embeddings_hom):
+        #         # Sample noise that we'll add to the latents
+        #         noise = torch.randn(image_latents.shape).to(image_latents.device)
+        #         timesteps = torch.randint(1000, (1,), device=image_latents.device)
 
-                # Add noise to the latents according to the noise magnitude at each timestep
-                # (this is the forward diffusion process)
-                noisy_latents = self.scheduler.add_noise(image_latents_hom, noise, timesteps)
+        #         # Add noise to the latents according to the noise magnitude at each timestep
+        #         # (this is the forward diffusion process)
+        #         noisy_latents = self.scheduler.add_noise(image_latents_hom, noise, timesteps)
 
-                # Predict the noise residual
-                noise_pred = self.unet(noisy_latents, timesteps, text_embeddings_hom).sample
+        #         # Predict the noise residual
+        #         noise_pred = self.unet(noisy_latents, timesteps, text_embeddings_hom).sample
 
-                loss = F.mse_loss(noise_pred, noise, reduction="none").mean([1, 2, 3]).mean()
-                accelerator.backward(loss)
+        #         loss = F.mse_loss(noise_pred, noise, reduction="none").mean([1, 2, 3]).mean()
+        #         accelerator.backward(loss)
 
-                optimizer.step()
-                optimizer.zero_grad()
+        #         optimizer.step()
+        #         optimizer.zero_grad()
 
-            # Checks if the accelerator has performed an optimization step behind the scenes
-            if accelerator.sync_gradients:
-                progress_bar.update(1)
-                global_step += 1
+        #     # Checks if the accelerator has performed an optimization step behind the scenes
+        #     if accelerator.sync_gradients:
+        #         progress_bar.update(1)
+        #         global_step += 1
 
-            logs = {"loss": loss.detach().item()}  # , "lr": lr_scheduler.get_last_lr()[0]}
-            progress_bar.set_postfix(**logs)
-            accelerator.log(logs, step=global_step)
+        #     logs = {"loss": loss.detach().item()}  # , "lr": lr_scheduler.get_last_lr()[0]}
+        #     progress_bar.set_postfix(**logs)
+        #     accelerator.log(logs, step=global_step)
 
-        accelerator.wait_for_everyone()
+        # accelerator.wait_for_everyone()
 
-        text_embeddings_hom.requires_grad_(False)
+        # text_embeddings_hom.requires_grad_(False)
 
-        # Homography view fine-tuning
+        # # Homography view fine-tuning
 
-        optimizer = torch.optim.Adam(
-            self.unet.parameters(),  # only optimize unet
-            lr=diffusion_model_learning_rate,
-        )
+        # optimizer = torch.optim.Adam(
+        #     self.unet.parameters(),  # only optimize unet
+        #     lr=diffusion_model_learning_rate,
+        # )
         
-        progress_bar = tqdm(range(model_fine_tuning_optimization_steps), disable=not accelerator.is_local_main_process)
+        # progress_bar = tqdm(range(model_fine_tuning_optimization_steps), disable=not accelerator.is_local_main_process)
 
-        logger.info("Next fine tuning the entire model to generate the homography image from the frontal image")
-        for _ in range(int(model_fine_tuning_optimization_steps/2)):
-            with accelerator.accumulate(self.unet.parameters()):
-                # Sample noise that we'll add to the latents
-                noise = torch.randn(image_latents.shape).to(image_latents.device)
-                timesteps = torch.randint(1000, (1,), device=image_latents.device)
+        # logger.info("Next fine tuning the entire model to generate the homography image from the frontal image")
+        # for _ in range(int(model_fine_tuning_optimization_steps/2)):
+        #     with accelerator.accumulate(self.unet.parameters()):
+        #         # Sample noise that we'll add to the latents
+        #         noise = torch.randn(image_latents.shape).to(image_latents.device)
+        #         timesteps = torch.randint(1000, (1,), device=image_latents.device)
 
-                # Add noise to the latents according to the noise magnitude at each timestep
-                # (this is the forward diffusion process)
-                noisy_latents_hom = self.scheduler.add_noise(image_latents_hom, noise, timesteps)
+        #         # Add noise to the latents according to the noise magnitude at each timestep
+        #         # (this is the forward diffusion process)
+        #         noisy_latents_hom = self.scheduler.add_noise(image_latents_hom, noise, timesteps)
 
-                # Predict the noise residual
-                noise_pred = self.unet(noisy_latents_hom, timesteps, text_embeddings_hom).sample
+        #         # Predict the noise residual
+        #         noise_pred = self.unet(noisy_latents_hom, timesteps, text_embeddings_hom).sample
                 
-                loss = F.mse_loss(noise_pred, noise, reduction="none").mean([1, 2, 3]).mean()
-                accelerator.backward(loss)
+        #         loss = F.mse_loss(noise_pred, noise, reduction="none").mean([1, 2, 3]).mean()
+        #         accelerator.backward(loss)
 
-                optimizer.step()
-                optimizer.zero_grad()
+        #         optimizer.step()
+        #         optimizer.zero_grad()
 
-            if accelerator.sync_gradients:
-                progress_bar.update(1)
-                global_step += 1
+        #     if accelerator.sync_gradients:
+        #         progress_bar.update(1)
+        #         global_step += 1
 
-            logs = {"loss": loss.detach().item()}  # , "lr": lr_scheduler.get_last_lr()[0]}
-            progress_bar.set_postfix(**logs)
-            accelerator.log(logs, step=global_step)
+        #     logs = {"loss": loss.detach().item()}  # , "lr": lr_scheduler.get_last_lr()[0]}
+        #     progress_bar.set_postfix(**logs)
+        #     accelerator.log(logs, step=global_step)
 
-        accelerator.wait_for_everyone()
+        # accelerator.wait_for_everyone()
         
         # Saving text embeddings variables for inferencing
         self.text_embeddings_hom = text_embeddings_hom
@@ -544,19 +544,11 @@ class ImagicStableDiffusionPipeline(DiffusionPipeline):
         # else:
         #     latents = torch.randn(latents_shape, generator=generator, device=self.device, dtype=latents_dtype)
 
-        if isinstance(image_hom, PIL.Image.Image):
-            self.image_hom = preprocess(image_hom).to(self.device)
-        init_latent_image_dist_hom = self.vae.encode(self.image_hom).latent_dist
-        image_latents_hom = init_latent_image_dist_hom.sample(generator=generator)
-        latents = 0.25 * image_latents_hom 
-
-        noise = torch.randn(image_latents_hom.shape).to(image_latents_hom.device)
-        # print(f"noise: {noise.shape}")
-        timesteps = torch.randint(50, 51, (1,), device=self.device)
-
-        image_latents_hom *=  (0.18215 / 2)
-        noisy_latents = self.scheduler.add_noise(image_latents_hom, noise, timesteps)
-        latents = noisy_latents
+        latents = torch.randn(latents_shape, generator=generator, device=self.device, dtype=latents_dtype)
+        self.scheduler.set_timesteps(num_inference_steps)
+        timesteps_tensor = self.scheduler.timesteps.to(self.device)
+        latents = latents * self.scheduler.init_noise_sigma
+        latents = latents + 0.01 * self.image_latents_hom
 
         # if self.device.type == "mps":
         #     # randn does not exist on mps

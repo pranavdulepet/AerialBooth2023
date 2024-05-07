@@ -35,11 +35,11 @@ def run_diffusion_experiment(init_image_path, output_dir, prompt, zero_output_pa
     # )
     res = pipe.train(
         prompt,
-        image=init_image,
+        image=image_hom,
         generator=generator, 
         text_embedding_optimization_steps=1000,
         model_fine_tuning_optimization_steps=500,
-        image_hom=image_hom
+        # image_hom=image_hom
     )
     
     os.makedirs(output_dir, exist_ok=True)
