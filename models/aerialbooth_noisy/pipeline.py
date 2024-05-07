@@ -256,14 +256,14 @@ class ImagicStableDiffusionPipeline(DiffusionPipeline):
         image_latents = 0.18215 * image_latents
         self.image_latents = image_latents
 
-        # if isinstance(image_hom, PIL.Image.Image):
-        #     image_hom = preprocess(image_hom)    
-        # latents_dtype = text_embeddings.dtype
-        # image_hom = image_hom.to(device=self.device, dtype=latents_dtype)
-        # init_latent_image_dist_hom = self.vae.encode(image_hom).latent_dist
-        # image_latents_hom = init_latent_image_dist_hom.sample(generator=generator)
-        # image_latents_hom = 0.18215 * image_latents_hom
-        # self.image_latents_hom = image_latents_hom
+        if isinstance(image_hom, PIL.Image.Image):
+            image_hom = preprocess(image_hom)    
+        latents_dtype = text_embeddings.dtype
+        image_hom = image_hom.to(device=self.device, dtype=latents_dtype)
+        init_latent_image_dist_hom = self.vae.encode(image_hom).latent_dist
+        image_latents_hom = init_latent_image_dist_hom.sample(generator=generator)
+        image_latents_hom = 0.18215 * image_latents_hom
+        self.image_latents_hom = image_latents_hom
 
         progress_bar = tqdm(range(text_embedding_optimization_steps), disable=not accelerator.is_local_main_process)
         progress_bar.set_description("Steps")
