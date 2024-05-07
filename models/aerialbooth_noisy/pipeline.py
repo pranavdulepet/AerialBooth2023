@@ -70,8 +70,7 @@ def preprocess(image):
     image = np.array(image).astype(np.float32) / 255.0
     image = image[None].transpose(0, 3, 1, 2)
     image = torch.from_numpy(image)
-    # return 2.0 * image - 1.0
-    return image - 1.0
+    return 2.0 * image - 1.0
 
 
 class ImagicStableDiffusionPipeline(DiffusionPipeline):
@@ -550,14 +549,13 @@ class ImagicStableDiffusionPipeline(DiffusionPipeline):
 
         init_latent_image_dist_hom = self.vae.encode(self.image_hom).latent_dist
         image_latents_hom = init_latent_image_dist_hom.sample(generator=generator)
-        latents = 0.1 * image_latents_hom 
 
         noise = torch.randn(image_latents_hom.shape).to(image_latents_hom.device)
         # print(f"noise: {noise.shape}")
         timesteps = torch.randint(50, 51, (1,), device=self.device)
 
-        image_latents_hom *=  0.05
-        noisy_latents = self.scheduler.add_noise(image_latents_hom, noise, timesteps)
+        image_latents_hom *= 0.18215
+        noisy_latents = self.scheduler.add_noise(0.05 * image_latents_hom, 0.95 * noise, timesteps)
         latents = noisy_latents
 
         # if self.device.type == "mps":
