@@ -554,7 +554,7 @@ class ImagicStableDiffusionPipeline(DiffusionPipeline):
         # print(f"noise: {noise.shape}")
         timesteps = torch.randint(50, 51, (1,), device=self.device)
 
-        # image_latents_hom *=  0.18215
+        image_latents_hom *=  (0.18215 / 2)
         noisy_latents = self.scheduler.add_noise(image_latents_hom, noise, timesteps)
         latents = noisy_latents
 
