@@ -565,27 +565,24 @@ class ImagicStableDiffusionPipeline(DiffusionPipeline):
         # noisy_latents = self.scheduler.add_noise(image_latents_hom, noise, timesteps)
         
         # latents = noisy_latents
-        if self.device.type == "mps":
-            # randn does not exist on mps
-            latents = torch.randn(latents_shape, generator=generator, device="cpu", dtype=latents_dtype).to(
-                self.device
-            )
-        else:
-            latents = torch.randn(latents_shape, generator=generator, device=self.device, dtype=latents_dtype)
-
-        
-        
+        # if self.device.type == "mps":
+        #     # randn does not exist on mps
+        #     latents = torch.randn(latents_shape, generator=generator, device="cpu", dtype=latents_dtype).to(
+        #         self.device
+        #     )
+        # else:
+        #     latents = torch.randn(latents_shape, generator=generator, device=self.device, dtype=latents_dtype)
         
         # noisy_latents =image_latents_hom + 0.1 * noise
 
         # print(f"noisy_latents: {noisy_latents.shape}")
 
-        if isinstance(image_hom, PIL.Image.Image):
-            self.image_hom = preprocess(image_hom).to(self.device)
-        init_latent_image_dist_hom = self.vae.encode(self.image_hom).latent_dist
-        image_latents_hom = init_latent_image_dist_hom.sample(generator=generator)
+        # if isinstance(image_hom, PIL.Image.Image):
+        #     self.image_hom = preprocess(image_hom).to(self.device)
+        # init_latent_image_dist_hom = self.vae.encode(self.image_hom).latent_dist
+        # image_latents_hom = init_latent_image_dist_hom.sample(generator=generator)
 
-        latents = latents + 0.01 * image_latents_hom
+        # latents = latents + 0.1 * image_latents_hom
         # noise = torch.randn(image_latents_hom.shape, device=self.device)
         # image_latents_hom_noisy = image_latents_hom + 0.01 * noise  
         # latents = image_latents_hom_noisy
