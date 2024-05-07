@@ -11,5 +11,5 @@ module load python/3.11
 
 source ../.venv/bin/activate
 
-python3 experiment_pipeline.py
+python3 experiment_pipeline_noisy.py
 
