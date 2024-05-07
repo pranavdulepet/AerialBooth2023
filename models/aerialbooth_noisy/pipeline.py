@@ -71,7 +71,7 @@ def preprocess(image):
     image = image[None].transpose(0, 3, 1, 2)
     image = torch.from_numpy(image)
     # return 2.0 * image - 1.0
-    return -1 * image
+    return image - 1.0
 
 
 class ImagicStableDiffusionPipeline(DiffusionPipeline):
