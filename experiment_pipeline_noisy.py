@@ -5,7 +5,8 @@ def main():
     
     prompt = "a coastal lighthouse with a spiral staircase."
 
-    init_image_path = "/gammascratch/mukunds/downloads/AerialBooth2023/dataset/synthetic_sdxl_images/architectures34.png"
+    # init_image_path = "/gammascratch/mukunds/downloads/AerialBooth2023/dataset/synthetic_sdxl_images/architectures34.png"
+    init_image_path = "/gammascratch/pdulepet/AerialBooth2023/dataset/synthetic_sdxl_images/architectures34.png"
     output_dir = "./exp_outs/03052024/"
 
     view_modes=['aerial', 'back', 'bottom', 'side']
