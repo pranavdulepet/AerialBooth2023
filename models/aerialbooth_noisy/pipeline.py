@@ -175,7 +175,7 @@ class ImagicStableDiffusionPipeline(DiffusionPipeline):
         diffusion_model_learning_rate: float = 2e-4,
         text_embedding_optimization_steps: int = 500,
         model_fine_tuning_optimization_steps: int = 1000,
-        # image_hom: Union[torch.FloatTensor, PIL.Image.Image] = None,
+        image_hom: Union[torch.FloatTensor, PIL.Image.Image] = None,
         **kwargs,
     ):
         
