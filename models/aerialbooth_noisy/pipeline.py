@@ -70,7 +70,8 @@ def preprocess(image):
     image = np.array(image).astype(np.float32) / 255.0
     image = image[None].transpose(0, 3, 1, 2)
     image = torch.from_numpy(image)
-    return 2.0 * image - 1.0
+    # return 2.0 * image - 1.0
+    return image
 
 
 class ImagicStableDiffusionPipeline(DiffusionPipeline):
@@ -546,6 +547,7 @@ class ImagicStableDiffusionPipeline(DiffusionPipeline):
 
         if isinstance(image_hom, PIL.Image.Image):
             self.image_hom = preprocess(image_hom).to(self.device)
+
         init_latent_image_dist_hom = self.vae.encode(self.image_hom).latent_dist
         image_latents_hom = init_latent_image_dist_hom.sample(generator=generator)
         latents = 0.1 * image_latents_hom 
@@ -554,7 +556,7 @@ class ImagicStableDiffusionPipeline(DiffusionPipeline):
         # print(f"noise: {noise.shape}")
         timesteps = torch.randint(50, 51, (1,), device=self.device)
 
-        image_latents_hom *=  1 / 0.18215
+        image_latents_hom *=  0.05
         noisy_latents = self.scheduler.add_noise(image_latents_hom, noise, timesteps)
         latents = noisy_latents
 
@@ -582,9 +584,7 @@ class ImagicStableDiffusionPipeline(DiffusionPipeline):
 
         # set timesteps
         self.scheduler.set_timesteps(num_inference_steps)
-
         timesteps_tensor = self.scheduler.timesteps.to(self.device)
-
         # scale the initial noise by the standard deviation required by the scheduler
         latents = latents * self.scheduler.init_noise_sigma
 
