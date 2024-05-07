@@ -548,16 +548,16 @@ class ImagicStableDiffusionPipeline(DiffusionPipeline):
             self.image_hom = preprocess(image_hom).to(self.device)
         init_latent_image_dist_hom = self.vae.encode(self.image_hom).latent_dist
         image_latents_hom = init_latent_image_dist_hom.sample(generator=generator)
-        latents = 0.5 * image_latents_hom 
+        latents = 0.25 * image_latents_hom 
 
-        noise =  0.5 * torch.randn(image_latents_hom.shape).to(image_latents_hom.device)
+        noise = torch.randn(image_latents_hom.shape).to(image_latents_hom.device)
         # print(f"noise: {noise.shape}")
         timesteps = torch.randint(50, 51, (1,), device=self.device)
 
-        # image_latents_hom *=  0.18215
+        image_latents_hom *=  0.18215
         noisy_latents = self.scheduler.add_noise(image_latents_hom, noise, timesteps)
         latents = noisy_latents
-        
+
         # if self.device.type == "mps":
         #     # randn does not exist on mps
         #     latents = torch.randn(latents_shape, generator=generator, device="cpu", dtype=latents_dtype).to(
