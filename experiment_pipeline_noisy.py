@@ -30,8 +30,10 @@ def main():
 
     for image, prompt in zip(images, prompts):
         init_image_path = f"/gammascratch/pdulepet/AerialBooth2023/dataset/synthetic_sdxl_images/{image}.png"
+        # init_image_path = f"/gammascratch/mukunds/downloads/AerialBooth2023/dataset/synthetic_sdxl_images/{image}.png"
         for view_mode in view_modes:
-            zero_output_path = f"./composite_outputs/{view_mode}_{image}.png"
+            zero_output_path = f"/gammascratch/pdulepet/AerialBooth2023/zero_outputs/{image}_{view_mode}.png"
+            # zero_output_path = f"/gammascratch/mukunds/downloads/AerialBooth2023/zero_outputs/{image}_{view_mode}.png"
             print(f"Processing {image} in {view_mode} mode with prompt: {prompt}")
             eval_prompt = f'{view_mode} view, {prompt}'
             
@@ -39,4 +41,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-
